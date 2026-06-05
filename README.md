@@ -103,3 +103,10 @@ The architecture of Humanity Hub deliberately minimizes high-level abstraction f
 * **Key Features Leveraged:** 
   * **Integrated Windows PowerShell Terminal:** Used for running environment allocations, installation routines, and hosting the active Node node process.
   * **Built-in File Explorer System:** Crucial for confirming absolute path structures, tracking down routing conflicts, and monitoring the initialization of the SQLite database.
+
+
+
+
+
+    OUTPUT:
+    <img width="852" height="902" alt="Image" src="https://github.com/user-attachments/assets/243a8230-f753-4252-84b4-4f214c558ffa" />
