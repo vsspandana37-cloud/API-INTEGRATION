@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Humanity Hub – Real-Time Acts of Kindness Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  /* ── RESET & BASE ─────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:        #0a0e1a;
+    --surface:   rgba(255,255,255,0.045);
+    --surface2:  rgba(255,255,255,0.08);
+    --border:    rgba(255,255,255,0.10);
+    --text:      #e8eaf6;
+    --muted:     rgba(232,234,246,0.5);
+    --accent1:   #6ee7b7;   /* emerald */
+    --accent2:   #a78bfa;   /* violet  */
+    --accent3:   #fb923c;   /* amber   */
+    --accent4:   #38bdf8;   /* sky     */
+    --accent5:   #f472b6;   /* pink    */
+    --glow1:     rgba(110,231,183,0.18);
+    --glow2:     rgba(167,139,250,0.18);
+    --font-head: 'Playfair Display', Georgia, serif;
+    --font-body: 'DM Sans', sans-serif;
+    --r:         18px;
+  }
+  [data-theme="light"] {
+    --bg:       #f0f4f8;
+    --surface:  rgba(255,255,255,0.65);
+    --surface2: rgba(255,255,255,0.85);
+    --border:   rgba(0,0,0,0.10);
+    --text:     #1a1f36;
+    --muted:    rgba(26,31,54,0.5);
+    --glow1:    rgba(110,231,183,0.25);
+    --glow2:    rgba(167,139,250,0.20);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--font-body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background .4s, color .4s;
+  }
+
+  /* ── ANIMATED BACKGROUND ─────────────────────────── */
+  .bg-orbs {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    overflow: hidden;
+  }
+  .orb {
+    position: absolute; border-radius: 50%; filter: blur(90px);
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .orb1 { width:520px; height:520px; top:-120px; left:-100px;
+         background: radial-gradient(circle, rgba(110,231,183,.35), transparent 70%); animation-delay:0s; }
+  .orb2 { width:440px; height:440px; top:40%; right:-120px;
+         background: radial-gradient(circle, rgba(167,139,250,.30), transparent 70%); animation-delay:-6s; }
+  .orb3 { width:380px; height:380px; bottom:-80px; left:30%;
+         background: radial-gradient(circle, rgba(56,189,248,.25), transparent 70%); animation-delay:-12s; }
+  @keyframes drift {
+    from { transform: translate(0,0) scale(1); }
+    to   { transform: translate(40px,30px) scale(1.08); }
+  }
+
+  /* ── GLASS CARD ──────────────────────────────────── */
+  .glass {
+    background: var(--surface);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+  }
+
+  /* ── LAYOUT ──────────────────────────────────────── */
+  #app { position: relative; z-index: 1; max-width: 1280px;
+         margin: 0 auto; padding: 0 20px 60px; }
+
+  /* ── NAVBAR ──────────────────────────────────────── */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 0 18px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-head); font-size: 1.5rem; font-weight: 700;
+  }
+  .logo-icon {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    display: grid; place-items: center; font-size: 1.1rem;
+    box-shadow: 0 0 20px var(--glow1);
+  }
+  .logo span { background: linear-gradient(90deg, var(--accent1), var(--accent2));
+               -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+  .score-pill {
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 16px; font-size: .85rem; font-weight: 600;
+    background: linear-gradient(135deg, var(--glow1), var(--glow2));
+    border: 1px solid rgba(110,231,183,.3);
+    border-radius: 99px; cursor: default;
+  }
+  .score-pill .score-val { color: var(--accent1); font-size: 1rem; }
+  .theme-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    cursor: pointer; font-size: 1.1rem; display: grid; place-items: center;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .theme-btn:hover { transform: rotate(20deg); box-shadow: 0 0 14px var(--glow2); }
+
+  /* ── HERO ────────────────────────────────────────── */
+  .hero {
+    text-align: center; padding: 50px 0 40px;
+    animation: fadeUp .7s ease both;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 14px; border-radius: 99px; font-size: .78rem;
+    letter-spacing: .08em; text-transform: uppercase; font-weight: 600;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--accent1); margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--font-head); font-size: clamp(2rem,5vw,3.4rem);
+    line-height: 1.15; margin-bottom: 16px;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent2); }
+  .hero p { color: var(--muted); max-width: 540px; margin: 0 auto 30px;
+            font-size: 1.05rem; line-height: 1.7; }
+  .hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    padding: 12px 26px; border-radius: 99px; font-size: .9rem; font-weight: 600;
+    cursor: pointer; border: none; font-family: var(--font-body); transition: all .2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent1), #34d399);
+    color: #0a0e1a;
+    box-shadow: 0 4px 22px rgba(110,231,183,.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(110,231,183,.5); }
+  .btn-ghost {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--surface); transform: translateY(-2px); }
+
+  /* ── STATS STRIP ─────────────────────────────────── */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-bottom: 34px; animation: fadeUp .7s .15s ease both; opacity: 0;
+  }
+  .stat-card {
+    padding: 20px; text-align: center;
+    transition: transform .2s, box-shadow .2s;
+  }
+  .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,.2); }
+  .stat-icon { font-size: 1.6rem; margin-bottom: 8px; }
+  .stat-val {
+    font-family: var(--font-head); font-size: 1.9rem; font-weight: 700;
+    line-height: 1;
+  }
+  .stat-lbl { font-size: .78rem; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em; }
+
+  /* ── MAIN GRID ───────────────────────────────────── */
+  .grid-main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+    animation: fadeUp .7s .25s ease both; opacity: 0;
+  }
+  .grid-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 18px;
+    margin-bottom: 18px;
+    animation: fadeUp .7s .35s ease both; opacity: 0;
+  }
+  .grid-full {
+    animation: fadeUp .7s .45s ease both; opacity: 0;
+  }
+
+  /* ── CARD BASE ───────────────────────────────────── */
+  .card { padding: 26px; transition: transform .2s, box-shadow .2s; }
+  .card:hover { transform: translateY(-3px); }
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .card-title-row { display: flex; align-items: center; gap: 9px; }
+  .card-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .card-title { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em;
+                font-weight: 600; color: var(--muted); }
+  .refresh-btn {
+    width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border);
+    background: var(--surface2); cursor: pointer; font-size: .9rem;
+    display: grid; place-items: center; transition: transform .3s;
+    color: var(--muted);
+  }
+  .refresh-btn:hover { color: var(--text); transform: rotate(180deg); }
+  .refresh-btn.spinning { animation: spin .5s linear; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── QUOTE CARD ──────────────────────────────────── */
+  .quote-text {
+    font-family: var(--font-head); font-size: 1.3rem; line-height: 1.55;
+    font-style: italic; color: var(--text); margin-bottom: 16px;
+    position: relative; padding-left: 20px;
+  }
+  .quote-text::before {
+    content: '"'; position: absolute; left: 0; top: -6px;
+    font-size: 3rem; line-height: 1; color: var(--accent2); opacity: .6;
+  }
+  .quote-author { color: var(--accent1); font-weight: 600; font-size: .9rem; }
+  .quote-category {
+    display: inline-block; margin-top: 10px; padding: 4px 12px;
+    border-radius: 99px; font-size: .75rem; font-weight: 600;
+    background: rgba(167,139,250,.12); color: var(--accent2);
+    border: 1px solid rgba(167,139,250,.2);
+  }
+
+  /* ── KINDNESS CARD ───────────────────────────────── */
+  .kindness-body { margin-bottom: 18px; }
+  .challenge-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 99px; font-size: .78rem; font-weight: 700;
+    background: rgba(251,146,60,.12); color: var(--accent3);
+    border: 1px solid rgba(251,146,60,.25); margin-bottom: 12px;
+  }
+  .challenge-text {
+    font-size: 1.05rem; line-height: 1.6; color: var(--text); margin-bottom: 14px;
+  }
+  .difficulty-bar {
+    display: flex; align-items: center; gap: 10px; font-size: .8rem; color: var(--muted);
+  }
+  .diff-dots { display: flex; gap: 4px; }
+  .diff-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .diff-dot.active { background: var(--accent3); }
+  .btn-sm {
+    padding: 9px 20px; font-size: .82rem; border-radius: 99px;
+    font-weight: 600; cursor: pointer; border: none; font-family: var(--font-body);
+    transition: all .2s;
+  }
+  .btn-accept {
+    background: linear-gradient(135deg, var(--accent3), #f59e0b);
+    color: #0a0e1a;
+  }
+  .btn-accept:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(251,146,60,.4); }
+  .btn-skip { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); margin-left: 8px; }
+  .btn-skip:hover { color: var(--text); }
+
+  /* ── MOOD CARD ───────────────────────────────────── */
+  .mood-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
+  .mood-btn {
+    padding: 12px 6px; border-radius: 12px; border: 1px solid var(--border);
+    background: var(--surface2); cursor: pointer; text-align: center;
+    font-size: .8rem; color: var(--muted); font-family: var(--font-body);
+    transition: all .2s;
+  }
+  .mood-btn:hover, .mood-btn.active {
+    border-color: var(--accent2); color: var(--text);
+    background: rgba(167,139,250,.12);
+    transform: translateY(-2px);
+  }
+  .mood-emoji { font-size: 1.4rem; display: block; margin-bottom: 4px; }
+  .mood-rec {
+    margin-top: 16px; padding: 14px; border-radius: 12px;
+    background: rgba(167,139,250,.08); border: 1px solid rgba(167,139,250,.15);
+    font-size: .88rem; line-height: 1.6; color: var(--text);
+    display: none;
+  }
+  .mood-rec.show { display: block; animation: fadeUp .3s ease; }
+
+  /* ── ECO CARD ────────────────────────────────────── */
+  .eco-fact-text { font-size: 1rem; line-height: 1.65; color: var(--text); margin-bottom: 14px; }
+  .eco-source { font-size: .78rem; color: var(--muted); }
+  .eco-progress { margin-top: 16px; }
+  .progress-label { display: flex; justify-content: space-between;
+                    font-size: .78rem; color: var(--muted); margin-bottom: 6px; }
+  .progress-bar {
+    height: 6px; border-radius: 99px; background: var(--border); overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent1), var(--accent4));
+    width: 0; transition: width 1.2s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* ── SPREAD KINDNESS CARD ────────────────────────── */
+  .spread-card { text-align: center; padding: 30px; }
+  .spread-icon {
+    width: 70px; height: 70px; border-radius: 50%; margin: 0 auto 16px;
+    background: linear-gradient(135deg, var(--accent5), var(--accent2));
+    display: grid; place-items: center; font-size: 2rem;
+    box-shadow: 0 0 30px rgba(244,114,182,.3);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 30px rgba(244,114,182,.3); }
+    50%      { box-shadow: 0 0 50px rgba(244,114,182,.55), 0 0 80px rgba(167,139,250,.2); }
+  }
+  .spread-card h3 { font-family: var(--font-head); font-size: 1.3rem; margin-bottom: 8px; }
+  .spread-card p { color: var(--muted); font-size: .88rem; margin-bottom: 20px; line-height: 1.6; }
+  .spread-count { font-size: 2.5rem; font-family: var(--font-head); font-weight: 700;
+                  color: var(--accent5); margin-bottom: 4px; }
+  .spread-sub { font-size: .78rem; color: var(--muted); margin-bottom: 20px; }
+  .btn-spread {
+    width: 100%; padding: 13px; border-radius: 12px; border: none;
+    font-family: var(--font-head); font-size: 1.05rem; font-weight: 600;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent5), var(--accent2));
+    color: #fff; transition: all .2s;
+    box-shadow: 0 4px 20px rgba(244,114,182,.3);
+  }
+  .btn-spread:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(244,114,182,.5); }
+  .btn-spread:active { transform: scale(.97); }
+
+  /* ── INSPIRATION WALL ────────────────────────────── */
+  .wall-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px; margin-top: 16px;
+  }
+  .wall-item {
+    padding: 16px; border-radius: 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: .88rem; line-height: 1.6;
+    animation: fadeUp .4s ease both;
+    position: relative; overflow: hidden;
+  }
+  .wall-item::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  }
+  .wall-item.c1::before { background: linear-gradient(90deg, var(--accent1), var(--accent4)); }
+  .wall-item.c2::before { background: linear-gradient(90deg, var(--accent2), var(--accent5)); }
+  .wall-item.c3::before { background: linear-gradient(90deg, var(--accent3), var(--accent5)); }
+  .wall-item.c4::before { background: linear-gradient(90deg, var(--accent4), var(--accent1)); }
+  .wall-author { font-weight: 600; color: var(--accent1); font-size: .8rem; margin-top: 10px; }
+  .wall-time { color: var(--muted); font-size: .74rem; }
+  .wall-add { display: flex; gap: 10px; margin-top: 14px; }
+  .wall-input {
+    flex: 1; padding: 10px 14px; border-radius: 10px; font-size: .88rem;
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--font-body); outline: none; transition: border .2s;
+  }
+  .wall-input:focus { border-color: var(--accent2); }
+  .btn-post {
+    padding: 10px 18px; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent5));
+    color: #fff; font-size: .85rem; font-weight: 600;
+    cursor: pointer; font-family: var(--font-body); transition: all .2s;
+    white-space: nowrap;
+  }
+  .btn-post:hover { transform: translateY(-1px); }
+
+  /* ── IMPACT SCORE ────────────────────────────────── */
+  .impact-card { padding: 24px; }
+  .impact-header { margin-bottom: 20px; }
+  .impact-ring-wrap { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+  .ring-svg { width: 110px; height: 110px; flex-shrink: 0; }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 10; }
+  .ring-fill {
+    fill: none; stroke-width: 10; stroke-linecap: round;
+    stroke-dasharray: 283; stroke-dashoffset: 283;
+    transform-origin: center; transform: rotate(-90deg);
+    transition: stroke-dashoffset 1.5s cubic-bezier(.4,0,.2,1);
+  }
+  .ring-text { font-family: var(--font-head); font-size: .9rem; }
+  .impact-details { flex: 1; min-width: 180px; }
+  .impact-row { display: flex; justify-content: space-between; align-items: center;
+               padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .impact-row:last-child { border: none; }
+  .impact-lbl { font-size: .82rem; color: var(--muted); }
+  .impact-val { font-weight: 600; font-size: .9rem; }
+
+  /* ── LOADER ──────────────────────────────────────── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px; height: 16px; margin: 6px 0;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+  .skeleton.sm { height: 12px; width: 60%; }
+  .skeleton.lg { height: 22px; }
+
+  /* ── TOAST ───────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 30px; right: 30px; z-index: 1000;
+    padding: 14px 22px; border-radius: 12px;
+    background: var(--surface2); backdrop-filter: blur(20px);
+    border: 1px solid var(--border); color: var(--text);
+    font-size: .88rem; font-weight: 500; box-shadow: 0 8px 30px rgba(0,0,0,.3);
+    transform: translateY(20px); opacity: 0;
+    transition: transform .3s, opacity .3s; pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ── ANIMATIONS ──────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fadeIn { animation: fadeUp .4s ease both; }
+
+  /* ── FLOATING ICONS ──────────────────────────────── */
+  .floaters { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .floater {
+    position: absolute; font-size: 1.3rem; opacity: .06;
+    animation: float-up linear infinite;
+  }
+  @keyframes float-up {
+    0%   { transform: translateY(100vh) rotate(0deg); opacity: .06; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+
+  /* ── RESPONSIVENESS ──────────────────────────────── */
+  @media (max-width: 900px) {
+    .stats-strip { grid-template-columns: repeat(2,1fr); }
+    .grid-main { grid-template-columns: 1fr; }
+    .grid-bottom { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 600px) {
+    .stats-strip { grid-template-columns: 1fr 1fr; }
+    .grid-bottom { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 1.8rem; }
+    .impact-ring-wrap { flex-direction: column; }
+    nav { flex-wrap: wrap; gap: 10px; }
+  }
+  @media (max-width: 420px) {
+    .mood-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="floaters" id="floaters"></div>
+<div class="bg-orbs"><div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div></div>
+
+<div id="app">
+
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">🌍</div>
+      <span>Humanity Hub</span>
+    </div>
+    <div class="nav-right">
+      <div class="score-pill">✨ Impact Score: <span class="score-val" id="nav-score">0</span></div>
+      <button class="theme-btn" onclick="toggleTheme()" title="Toggle theme" id="theme-icon">🌙</button>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-tag">🕊️ Live · Real-Time · Humanity-Centered</div>
+    <h1>Make the World <em>Kinder,</em><br/>One Act at a Time</h1>
+    <p>Fetch real-time inspiration, daily kindness challenges, environmental awareness, and track your positive community impact.</p>
+    <div class="hero-actions">
+      <button class="btn btn-primary" onclick="refreshAll()">⚡ Refresh Everything</button>
+      <button class="btn btn-ghost" onclick="scrollToWall()">💬 Inspiration Wall</button>
+    </div>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat-card glass">
+      <div class="stat-icon">🤝</div>
+      <div class="stat-val" style="color:var(--accent1)" id="stat-acts">0</div>
+      <div class="stat-lbl">Acts of Kindness Today</div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-icon">🌱</div>
+      <div class="stat-val" style="color:var(--accent4)" id="stat-trees">0</div>
+      <div class="stat-lbl">Trees Saved This Hour</div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-icon">🙌</div>
+      <div class="stat-val" style="color:var(--accent2)" id="stat-vol">0</div>
+      <div class="stat-lbl">Volunteers Active</div>
+    </div>
+    <div class="stat-card glass">
+      <div class="stat-icon">💛</div>
+      <div class="stat-val" style="color:var(--accent5)" id="stat-smiles">0</div>
+      <div class="stat-lbl">Smiles Generated</div>
+    </div>
+  </div>
+
+  <div class="grid-main">
+    <div class="card glass" id="quote-card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <div class="card-dot" style="background:var(--accent2)"></div>
+          <span class="card-title">Daily Inspiration</span>
+        </div>
+        <button class="refresh-btn" onclick="loadQuote(true)" title="New quote">↻</button>
+      </div>
+      <div id="quote-body">
+        <div class="skeleton lg"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton sm"></div>
+      </div>
+    </div>
+
+    <div class="card glass" id="challenge-card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <div class="card-dot" style="background:var(--accent3)"></div>
+          <span class="card-title">Today's Kindness Challenge</span>
+        </div>
+        <button class="refresh-btn" onclick="loadChallenge(true)" title="New challenge">↻</button>
+      </div>
+      <div id="challenge-body">
+        <div class="skeleton lg"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-bottom">
+    <div class="card glass">
+      <div class="card-header">
+        <div class="card-title-row">
+          <div class="card-dot" style="background:var(--accent5)"></div>
+          <span class="card-title">Mood-Based Recommendations</span>
+        </div>
+      </div>
+      <div class="mood-grid">
+        <button class="mood-btn" onclick="setMood('happy',this)"><span class="mood-emoji">😊</span>Happy</button>
+        <button class="mood-btn" onclick="setMood('sad',this)"><span class="mood-emoji">😔</span>Sad</button>
+        <button class="mood-btn" onclick="setMood('anxious',this)"><span class="mood-emoji">😰</span>Anxious</button>
+        <button class="mood-btn" onclick="setMood('motivated',this)"><span class="mood-emoji">💪</span>Motivated</button>
+        <button class="mood-btn" onclick="setMood('tired',this)"><span class="mood-emoji">😴</span>Tired</button>
+        <button class="mood-btn" onclick="setMood('grateful',this)"><span class="mood-emoji">🙏</span>Grateful</button>
+      </div>
+      <div class="mood-rec" id="mood-rec"></div>
+    </div>
+
+    <div class="card glass" id="eco-card">
+      <div class="card-header">
+        <div class="card-title-row">
+          <div class="card-dot" style="background:var(--accent1)"></div>
+          <span class="card-title">Environmental Awareness</span>
+        </div>
+        <button class="refresh-btn" onclick="loadEco(true)" title="New fact">↻</button>
+      </div>
+      <div id="eco-body">
+        <div class="skeleton lg"></div>
+        <div class="skeleton"></div>
+        <div class="eco-progress" style="margin-top:14px">
+          <div class="progress-label"><span>Global Action Progress</span><span>—</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="eco-progress"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="spread-card glass">
+      <div class="spread-icon">💖</div>
+      <h3>Spread Kindness</h3>
+      <p>Every click adds a ripple of kindness to the global counter. Be the change!</p>
+      <div class="spread-count" id="spread-count">0</div>
+      <div class="spread-sub">Global Kindness Clicks Today</div>
+      <button class="btn-spread" onclick="spreadKindness()">💖 Spread Kindness Now</button>
+    </div>
+  </div>
+
+  <div class="grid-full" style="margin-bottom:18px;">
+    <div class="card glass impact-card">
+      <div class="card-header impact-header">
+        <div class="card-title-row">
+          <div class="card-dot" style="background:var(--accent4)"></div>
+          <span class="card-title">Your Positive Impact Score</span>
+        </div>
+      </div>
+      <div class="impact-ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="45"/>
+          <circle class="ring-fill" cx="50" cy="50" r="45" id="ring-fill" stroke="url(#ringGrad)"/>
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#6ee7b7"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <text x="50" y="45" text-anchor="middle" class="ring-text" fill="var(--text)" font-size="14" font-weight="700" id="ring-num">0</text>
+          <text x="50" y="60" text-anchor="middle" fill="var(--muted)" font-size="8">Impact Pts</text>
+        </svg>
+        <div class="impact-details">
+          <div class="impact-row">
+            <span class="impact-lbl">🤝 Challenges Accepted</span>
+            <span class="impact-val" id="imp-challenges">0</span>
+          </div>
+          <div class="impact-row">
+            <span class="impact-lbl">💖 Kindness Spread</span>
+            <span class="impact-val" id="imp-spread">0</span>
+          </div>
+          <div class="impact-row">
+            <span class="impact-lbl">🌱 Eco Actions</span>
+            <span class="impact-val" id="imp-eco">0</span>
+          </div>
+          <div class="impact-row">
+            <span class="impact-lbl">📅 Day Streak</span>
+            <span class="impact-val" id="imp-streak">1 🔥</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-full" id="wall-section">
+    <div class="card glass">
+      <div class="card-header">
+        <div class="card-title-row">
+          <div class="card-dot" style="background:var(--accent5)"></div>
+          <span class="card-title">Community Inspiration Wall</span>
+        </div>
+      </div>
+      <div class="wall-add">
+        <input class="wall-input" id="wall-input" maxlength="160" placeholder="Share a kind act or inspiring thought…" />
+        <button class="btn-post" onclick="postToWall()">Post ✨</button>
+      </div>
+      <div class="wall-grid" id="wall-grid"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   HUMANITY HUB — JavaScript Integrated via Database REST API
+   ═══════════════════════════════════════════════════════════ */
+
+const API_BASE = ''; // Hits local paths mapped directly onto our node execution stack
+
+// ── STATE ──────────────────────────────────────────────────
+const state = {
+  score: parseInt(localStorage.getItem('hh_score') || '0'),
+  challenges: parseInt(localStorage.getItem('hh_challenges') || '0'),
+  spread: parseInt(localStorage.getItem('hh_spread') || '0'),
+  eco: parseInt(localStorage.getItem('hh_eco') || '0'),
+  streak: parseInt(localStorage.getItem('hh_streak') || '1'),
+  globalSpread: 847293 + Math.floor(Math.random() * 1000),
+};
+
+function saveState() {
+  localStorage.setItem('hh_score', state.score);
+  localStorage.setItem('hh_challenges', state.challenges);
+  localStorage.setItem('hh_spread', state.spread);
+  localStorage.setItem('hh_eco', state.eco);
+  localStorage.setItem('hh_streak', state.streak);
+}
+
+// ── DATA ARRAYS ───────────────────────────────────────────
+async function fetchQuote() {
+  try {
+    const r = await fetch(`${API_BASE}/api/quote`);
+    return await r.json();
+  } catch {
+    return { content: "Act as if what you do makes a difference. It does.", author: "William James", tags: ["impact"] };
+  }
+}
+
+const CHALLENGES = [
+  { text: "Write a genuine compliment and leave it as an anonymous sticky note for a coworker or classmate.", difficulty: 1 },
+  { text: "Call or message someone you haven't spoken to in months — just to check in.", difficulty: 2 },
+  { text: "Pay for a stranger's coffee or meal today without telling them who did it.", difficulty: 2 },
+  { text: "Spend 30 minutes picking up litter in your neighborhood park or street.", difficulty: 2 },
+  { text: "Donate 5 items you no longer use to a local shelter or charity before the end of the week.", difficulty: 3 }
+];
+
+function getChallenge() {
+  return CHALLENGES[Math.floor(Math.random() * CHALLENGES.length)];
+}
+
+const ECO_FACTS = [
+  { text: "🌊 Oceans produce over 50% of Earth's oxygen. Protecting marine ecosystems is protecting our very breath.", progress: 42, source: "NOAA Ocean Facts" },
+  { text: "🌳 A single mature tree absorbs about 48 lbs of CO₂ per year. Planting trees is a powerful climate action.", progress: 61, source: "U.S. Forest Service" },
+  { text: "♻️ Recycling one aluminum can saves enough energy to power a TV for 3 hours. Every can counts.", progress: 55, source: "Aluminum Association" }
+];
+
+function getEcoFact() {
+  return ECO_FACTS[Math.floor(Math.random() * ECO_FACTS.length)];
+}
+
+const MOODS = {
+  happy:     { icon:'😊', rec: "Your good energy is contagious! 🌟 Challenge yourself: pass it on. Compliment 3 strangers today or share what made you happy in the Inspiration Wall below." },
+  sad:       { icon:'😔', rec: "It's okay to feel this way. 💙 A small act of giving — even a smile — has been shown to lift mood through dopamine release." },
+  anxious:   { icon:'😰', rec: "Breathe: 4 counts in, hold 4, out 6. 🌬️ Research shows helping others reduces cortisol. Try a tiny challenge." },
+  motivated: { icon:'💪', rec: "Channel that energy! 🚀 Take on the hardest kindness challenge or share your fire on the Inspiration Wall." },
+  tired:     { icon:'😴', rec: "Rest is valid and necessary. 🌙 Even a small act counts: send a kind text, smile at someone, or simply read today's quote." },
+  grateful:  { icon:'🙏', rec: "Gratitude is a superpower. 💛 Write down 3 things you're grateful for and share one here on the wall." },
+};
+
+let activeMoodBtn = null;
+
+function setMood(mood, btn) {
+  if (activeMoodBtn) activeMoodBtn.classList.remove('active');
+  btn.classList.add('active');
+  activeMoodBtn = btn;
+  const rec = document.getElementById('mood-rec');
+  rec.textContent = MOODS[mood].rec;
+  rec.classList.add('show');
+  addScore(5);
+  showToast(`${MOODS[mood].icon} Mood linked! Personalized insights computed.`);
+}
+
+// ── RENDER CONTROLLERS ─────────────────────────────────────
+async function loadQuote(spin = false) {
+  const btn = document.querySelector('#quote-card .refresh-btn');
+  if (spin) { btn.classList.add('spinning'); setTimeout(() => btn.classList.remove('spinning'), 500); }
+  document.getElementById('quote-body').innerHTML = `<div class="skeleton lg"></div><div class="skeleton"></div><div class="skeleton sm"></div>`;
+  const q = await fetchQuote();
+  document.getElementById('quote-body').innerHTML = `
+    <div class="quote-text fadeIn">${q.content}</div>
+    <div class="quote-author fadeIn">— ${q.author}</div>
+    ${q.tags ? `<span class="quote-category fadeIn">${q.tags[0]}</span>` : ''}
+  `;
+  if (spin) { addScore(3); showToast('✨ Fresh inspiration loaded!'); }
+}
+
+function loadChallenge(spin = false) {
+  const btn = document.querySelector('#challenge-card .refresh-btn');
+  if (spin) { btn.classList.add('spinning'); setTimeout(() => btn.classList.remove('spinning'), 500); }
+  const c = getChallenge();
+  const dots = [1,2,3].map(i => `<div class="diff-dot ${i<=c.difficulty?'active':''}"></div>`).join('');
+  const diffLabel = ['','Easy','Medium','Hero'][c.difficulty];
+  document.getElementById('challenge-body').innerHTML = `
+    <div class="challenge-badge">🎯 Today's Challenge</div>
+    <div class="challenge-text fadeIn">${c.text}</div>
+    <div class="difficulty-bar">
+      Difficulty: <div class="diff-dots">${dots}</div> <strong>${diffLabel}</strong>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:0">
+      <button class="btn-sm btn-accept" onclick="acceptChallenge()">✅ I'll Do It!</button>
+      <button class="btn-sm btn-skip" onclick="loadChallenge(true)">Skip →</button>
+    </div>
+  `;
+  if (spin) showToast('🎯 New challenge ready for you!');
+}
+
+function acceptChallenge() {
+  state.challenges++;
+  addScore(20);
+  saveState();
+  updateImpact();
+  showToast('🌟 Challenge accepted! You\'re making a difference!');
+  const acceptBtn = document.querySelector('.btn-accept');
+  if(acceptBtn) {
+    acceptBtn.textContent = '✅ Accepted!';
+    acceptBtn.style.background = 'linear-gradient(135deg,var(--accent1),#34d399)';
+  }
+}
+
+function loadEco(spin = false) {
+  const btn = document.querySelector('#eco-card .refresh-btn');
+  if (spin) { btn.classList.add('spinning'); setTimeout(() => btn.classList.remove('spinning'), 500); }
+  const f = getEcoFact();
+  document.getElementById('eco-body').innerHTML = `
+    <div class="eco-fact-text fadeIn">${f.text}</div>
+    <div class="eco-source">Source: ${f.source}</div>
+    <div class="eco-progress">
+      <div class="progress-label"><span>Global Action Progress</span><span>${f.progress}%</span></div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="eco-progress" style="width:0%"></div>
+      </div>
+    </div>
+  `;
+  setTimeout(() => {
+    const el = document.getElementById('eco-progress');
+    if (el) el.style.width = f.progress + '%';
+  }, 100);
+  if (spin) { state.eco++; addScore(5); saveState(); updateImpact(); showToast('🌱 Eco fact refreshed!'); }
+}
+
+function animateCount(el, target, duration = 1200) {
+  if (!el) return;
+  const start = parseInt(el.textContent.replace(/,/g,'')) || 0;
+  const range = target - start;
+  const startTime = performance.now();
+  function step(now) {
+    const p = Math.min((now - startTime) / duration, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.floor(start + range * ease).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function loadStats() {
+  animateCount(document.getElementById('stat-acts'), 2847 + Math.floor(Math.random()*300));
+  animateCount(document.getElementById('stat-trees'), 183 + Math.floor(Math.random()*30));
+  animateCount(document.getElementById('stat-vol'), 12430 + Math.floor(Math.random()*500));
+  animateCount(document.getElementById('stat-smiles'), 94728 + Math.floor(Math.random()*2000));
+  animateCount(document.getElementById('spread-count'), state.globalSpread);
+}
+
+function spreadKindness() {
+  state.spread++;
+  state.globalSpread++;
+  addScore(10);
+  saveState();
+  animateCount(document.getElementById('spread-count'), state.globalSpread);
+  updateImpact();
+  const heart = document.createElement('div');
+  heart.className = 'floater';
+  heart.style.cssText = `left:${40+Math.random()*20}%;font-size:1.8rem;opacity:.9;animation:float-up 2s ease-out forwards`;
+  heart.textContent = ['💖','💕','💗','💛','🌸'][Math.floor(Math.random()*5)];
+  document.body.appendChild(heart);
+  setTimeout(() => heart.remove(), 2100);
+  showToast('💖 You just spread kindness globally!');
+}
+
+function addScore(pts) {
+  state.score += pts;
+  saveState();
+  animateCount(document.getElementById('nav-score'), state.score, 600);
+  updateImpact();
+}
+
+function updateImpact() {
+  document.getElementById('imp-challenges').textContent = state.challenges;
+  document.getElementById('imp-spread').textContent = state.spread;
+  document.getElementById('imp-eco').textContent = state.eco;
+  document.getElementById('imp-streak').textContent = state.streak + ' 🔥';
+  const maxScore = 500;
+  const pct = Math.min(state.score / maxScore, 1);
+  const circumference = 283;
+  const offset = circumference - pct * circumference;
+  document.getElementById('ring-fill').style.strokeDashoffset = offset;
+  document.getElementById('ring-num').textContent = state.score;
+  animateCount(document.getElementById('nav-score'), state.score, 400);
+}
+
+// ── SQL DATABASE SYNC FOR INSPIRATION WALL ──────────────────
+const COLORS = ['c1','c2','c3','c4'];
+const SEED_POSTS = [
+  { name:"Priya M.", text:"I helped an elderly woman carry her groceries today. Her smile made my whole week! 🛒", time:"2m ago" },
+  { name:"James K.", text:"Left an anonymous thank-you note for our office janitor. They work so hard!", time:"5m ago" }
+];
+
+async function renderWall() {
+  const grid = document.getElementById('wall-grid');
+  try {
+    const response = await fetch(`${API_BASE}/api/wall`);
+    const backendPosts = await response.json();
+    
+    // Merge baseline static layout cards cleanly with active database strings
+    const all = [...SEED_POSTS, ...backendPosts].reverse().slice(0, 12);
+    
+    grid.innerHTML = all.map((p, i) => `
+      <div class="wall-item ${COLORS[i % COLORS.length]}" style="animation-delay:${i*0.06}s">
+        ${p.text}
+        <div class="wall-author">— ${p.name}</div>
+        <div class="wall-time">${p.time}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error("Network sync bottleneck:", err);
+  }
+}
+
+async function postToWall() {
+  const inp = document.getElementById('wall-input');
+  const text = inp.value.trim();
+  if (!text) { showToast('✏️ Write something kind first!'); return; }
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/wall`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'You ✨', text: text, time: 'just now' })
+    });
+    
+    if (response.ok) {
+      inp.value = '';
+      await renderWall();
+      addScore(15);
+      showToast('🎉 Saved straight to SQLite relational database storage!');
+    }
+  } catch {
+    showToast('❌ SQL operational write target failed.');
+  }
+}
+
+document.getElementById('wall-input').addEventListener('keypress', e => {
+  if (e.key === 'Enter') postToWall();
+});
+
+function spawnFloaters() {
+  const icons = ['🌟','💛','🌱','🕊️','💚','🌸','🤝','✨','💙'];
+  const container = document.getElementById('floaters');
+  for (let i = 0; i < 14; i++) {
+    const el = document.createElement('div');
+    el.className = 'floater';
+    el.textContent = icons[i % icons.length];
+    el.style.cssText = `left: ${Math.random()*100}%; animation-duration: ${14 + Math.random()*16}s; animation-delay: ${-Math.random()*18}s; font-size: ${0.9 + Math.random()*0.8}rem;`;
+    container.appendChild(el);
+  }
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isLight = html.dataset.theme === 'light';
+  html.dataset.theme = isLight ? 'dark' : 'light';
+  document.getElementById('theme-icon').textContent = isLight ? '🌙' : '☀️';
+  showToast(isLight ? '🌙 Dark mode activated' : '☀️ Light mode activated');
+}
+
+async function refreshAll() {
+  await loadQuote(false);
+  loadChallenge(false);
+  loadEco(false);
+  loadStats();
+  showToast('⚡ All data refreshed!');
+}
+
+function scrollToWall() {
+  document.getElementById('wall-section').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function startLiveTicker() {
+  setInterval(() => {
+    const acts = document.getElementById('stat-acts');
+    if (acts) {
+      const cur = parseInt(acts.textContent.replace(/,/g,''));
+      if (Math.random() > 0.4) animateCount(acts, cur + Math.floor(Math.random()*3), 800);
+    }
+  }, 4000);
+}
+
+// ── INITIALIZATION ENTRYPOINT ──────────────────────────────
+(async function init() {
+  spawnFloaters();
+  loadStats();
+  await loadQuote(false);
+  loadChallenge(false);
+  loadEco(false);
+  await renderWall();
+  updateImpact();
+  startLiveTicker();
+
+  document.querySelectorAll('[style*="opacity: 0"], .stats-strip, .grid-main, .grid-bottom, .grid-full')
+    .forEach(el => el.style.opacity = '1');
+
+  setTimeout(() => {
+    const el = document.getElementById('eco-progress');
+    if (el && el.style.width === '0%') el.style.width = '47%';
+  }, 600);
+})();
+</script>
+</body>
+</html>
